@@ -23,10 +23,24 @@ def is_visible(landmark):
 # 0.01324360790111218
 # 0.011316379097523817
 def match(ref_feat, feat):
+    ref_encoding = [lm != None for lm in ref_feat]
+    encoding = [lm != None for lm in feat]
+
+    comp_encoding = [lm1 != lm2 for lm1, lm2 in zip(ref_encoding, encoding)]
+    bi_distance = sum(comp_encoding)
+
+    if bi_distance >= 2:
+        return False
+
+    distances = list()
     for lm1, lm2 in zip(ref_feat, feat):
         if lm1 is not None and lm2 is not None:
-            print(dist(lm1, lm2))
-    return None
+            distance = dist(lm1, lm2)
+            distances.append(distance)
+
+    if sum(distances) < 5.0:
+        return True
+    return False
 
 # Initialize pose estimator
 ref_feat = None
