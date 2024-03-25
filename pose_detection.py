@@ -42,6 +42,48 @@ def match(ref_feat, feat):
         return True
     return False
 
+def get_center(feat):
+    x = 0.0
+    y = 0.0
+    z = 0.0
+    count = 0
+    for f in feat:
+        if f is None:
+            continue
+        x += f.x
+        y += f.y
+        z += f.z
+
+        count += 1
+
+    return x/count, y/count, z/count
+
+def guide(ref_feat, feat):
+    ref_center = get_center(ref_feat)
+    center = get_center(feat)
+
+    diff = ref_center[0] - center[0], ref_center[1] - center[1], ref_center[2] - center[2]
+    
+    return diff
+
+def get_messages(diff):
+    # x > 0 -> camera need to move left
+    # y > 0 -> camera need to move up
+    # z > 0 -> camera need to move back
+    messages = []
+
+    if abs(diff[0]) > 0.1:
+        messages.append("The camera needs to move left." if diff[0] > 0 else "The camera needs to move right.")
+        
+    if abs(diff[1]) > 0.1:
+        messages.append("The camera needs to move up." if diff[1] > 0 else "The camera needs to move down.")
+        
+    if abs(diff[2]) > 0.2:
+        messages.append("The camera needs to move back." if diff[2] > 0 else "The camera needs to move forward.")
+
+    valid_photo = len(messages) == 0
+    return valid_photo, messages
+
 # Initialize pose estimator
 ref_feat = None
 mp_drawing = mp.solutions.drawing_utils
@@ -120,7 +162,10 @@ while cap.isOpened():
     # Match the ref feature
     else:
         direction = match(ref_feat, feat)
-        print("direction:", direction)
+        diff = guide(ref_feat, feat)
+        valid, messages = get_messages(diff)
+        print(valid)
+        print(messages)
 
     # Draw skeleton on the frame
     mp_drawing.draw_landmarks(frame, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
