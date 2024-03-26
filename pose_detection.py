@@ -84,97 +84,120 @@ def get_messages(diff):
     valid_photo = len(messages) == 0
     return valid_photo, messages
 
-# Initialize pose estimator
-ref_feat = None
-mp_drawing = mp.solutions.drawing_utils
-mp_pose = mp.solutions.pose
-pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+if __name__ == "__main__":
+    # Initialize
+    blur = True
+    ref_feat = None
+    mp_drawing = mp.solutions.drawing_utils
+    mp_pose = mp.solutions.pose
+    pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
 
-features = [mp_pose.PoseLandmark.NOSE,
-    mp_pose.PoseLandmark.LEFT_EYE_INNER,
-    mp_pose.PoseLandmark.LEFT_EYE,
-    mp_pose.PoseLandmark.LEFT_EYE_OUTER,
-    mp_pose.PoseLandmark.RIGHT_EYE_INNER,
-    mp_pose.PoseLandmark.RIGHT_EYE,
-    mp_pose.PoseLandmark.RIGHT_EYE_OUTER,
-    mp_pose.PoseLandmark.LEFT_EAR,
-    mp_pose.PoseLandmark.RIGHT_EAR,
-    mp_pose.PoseLandmark.MOUTH_LEFT,
-    mp_pose.PoseLandmark.MOUTH_RIGHT,
-    mp_pose.PoseLandmark.LEFT_SHOULDER,
-    mp_pose.PoseLandmark.RIGHT_SHOULDER,
-    mp_pose.PoseLandmark.LEFT_ELBOW,
-    mp_pose.PoseLandmark.RIGHT_ELBOW,
-    mp_pose.PoseLandmark.LEFT_WRIST,
-    mp_pose.PoseLandmark.RIGHT_WRIST,
-    mp_pose.PoseLandmark.LEFT_PINKY,
-    mp_pose.PoseLandmark.RIGHT_PINKY,
-    mp_pose.PoseLandmark.LEFT_INDEX,
-    mp_pose.PoseLandmark.RIGHT_INDEX,
-    mp_pose.PoseLandmark.LEFT_THUMB,
-    mp_pose.PoseLandmark.RIGHT_THUMB,
-    mp_pose.PoseLandmark.LEFT_HIP,
-    mp_pose.PoseLandmark.RIGHT_HIP,
-    mp_pose.PoseLandmark.LEFT_KNEE,
-    mp_pose.PoseLandmark.RIGHT_KNEE,
-    mp_pose.PoseLandmark.LEFT_ANKLE,
-    mp_pose.PoseLandmark.RIGHT_ANKLE,
-    mp_pose.PoseLandmark.LEFT_HEEL,
-    mp_pose.PoseLandmark.RIGHT_HEEL,
-    mp_pose.PoseLandmark.LEFT_FOOT_INDEX,
-    mp_pose.PoseLandmark.RIGHT_FOOT_INDEX,
-]
+    mp_face_detection = mp.solutions.face_detection
+    face_detection = mp_face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.5)
 
-cap = cv2.VideoCapture(0)
-while cap.isOpened():
-    # Read the frame
-    _, frame = cap.read()
+    features = [mp_pose.PoseLandmark.NOSE,
+        mp_pose.PoseLandmark.LEFT_EYE_INNER,
+        mp_pose.PoseLandmark.LEFT_EYE,
+        mp_pose.PoseLandmark.LEFT_EYE_OUTER,
+        mp_pose.PoseLandmark.RIGHT_EYE_INNER,
+        mp_pose.PoseLandmark.RIGHT_EYE,
+        mp_pose.PoseLandmark.RIGHT_EYE_OUTER,
+        mp_pose.PoseLandmark.LEFT_EAR,
+        mp_pose.PoseLandmark.RIGHT_EAR,
+        mp_pose.PoseLandmark.MOUTH_LEFT,
+        mp_pose.PoseLandmark.MOUTH_RIGHT,
+        mp_pose.PoseLandmark.LEFT_SHOULDER,
+        mp_pose.PoseLandmark.RIGHT_SHOULDER,
+        mp_pose.PoseLandmark.LEFT_ELBOW,
+        mp_pose.PoseLandmark.RIGHT_ELBOW,
+        mp_pose.PoseLandmark.LEFT_WRIST,
+        mp_pose.PoseLandmark.RIGHT_WRIST,
+        mp_pose.PoseLandmark.LEFT_PINKY,
+        mp_pose.PoseLandmark.RIGHT_PINKY,
+        mp_pose.PoseLandmark.LEFT_INDEX,
+        mp_pose.PoseLandmark.RIGHT_INDEX,
+        mp_pose.PoseLandmark.LEFT_THUMB,
+        mp_pose.PoseLandmark.RIGHT_THUMB,
+        mp_pose.PoseLandmark.LEFT_HIP,
+        mp_pose.PoseLandmark.RIGHT_HIP,
+        mp_pose.PoseLandmark.LEFT_KNEE,
+        mp_pose.PoseLandmark.RIGHT_KNEE,
+        mp_pose.PoseLandmark.LEFT_ANKLE,
+        mp_pose.PoseLandmark.RIGHT_ANKLE,
+        mp_pose.PoseLandmark.LEFT_HEEL,
+        mp_pose.PoseLandmark.RIGHT_HEEL,
+        mp_pose.PoseLandmark.LEFT_FOOT_INDEX,
+        mp_pose.PoseLandmark.RIGHT_FOOT_INDEX,
+    ]
 
-    try:
-        # Process the frame for pose detection
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    
-        pose_results = pose.process(frame_rgb)
+    cap = cv2.VideoCapture(0)
+    while cap.isOpened():
+        # Read the frame
+        _, frame = cap.read()
 
-    except:
-        continue
-
-    # Get the feature
-    feat = list()
-    for f in features:
         try:
-            landmark = pose_results.pose_landmarks.landmark[f]
-
-            if is_visible(landmark):
-                feat.append(landmark)
-            else:
-                feat.append(None)
+            # Process the frame for pose detection
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+            pose_results = pose.process(frame_rgb)
+            if blur:
+                face_results = face_detection.process(frame_rgb)
         except:
-            feat.append(None)
+            continue
 
-    # Skip invalid features
-    if all(landmark is None for landmark in feat):
-        continue
+        # Get the feature
+        feat = list()
+        for f in features:
+            try:
+                landmark = pose_results.pose_landmarks.landmark[f]
 
-    # Record the ref feature
-    if ref_feat is None:
-        ref_feat = feat
-    # Match the ref feature
-    else:
-        direction = match(ref_feat, feat)
-        diff = guide(ref_feat, feat)
-        valid, messages = get_messages(diff)
-        print(valid)
-        print(messages)
+                if is_visible(landmark):
+                    feat.append(landmark)
+                else:
+                    feat.append(None)
+            except:
+                feat.append(None)
 
-    # Draw skeleton on the frame
-    mp_drawing.draw_landmarks(frame, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-    # Display the frame
-    cv2.imshow('Output', frame)
+        # Skip invalid features
+        if all(landmark is None for landmark in feat):
+            continue
 
-    if cv2.waitKey(1) == ord('q'):
-        break
+        # Record the ref feature
+        if ref_feat is None:
+            ref_feat = feat
+        # Match the ref feature
+        else:
+            direction = match(ref_feat, feat)
+            diff = guide(ref_feat, feat)
+            valid, messages = get_messages(diff)
+            print(valid)
+            print(messages)
 
-# Close the windows   
-cap.release()
-cv2.destroyAllWindows()
+        if blur and face_results.detections:
+            for detection in face_results.detections:
+                # Each detection has a location_data field that includes the bounding box
+                bboxC = detection.location_data.relative_bounding_box
+                ih, iw, _ = frame.shape
+                x, y, w, h = int(bboxC.xmin * iw), int(bboxC.ymin * ih), \
+                            int(bboxC.width * iw), int(bboxC.height * ih)
+
+                # Blur the detected face
+                face_region = frame[y:y+h, x:x+w]
+                if len(face_region) == 0:
+                    continue
+
+                blurred_face = cv2.GaussianBlur(face_region, (99, 99), 30)
+                frame[y:y+h, x:x+w] = blurred_face
+
+        # Draw the pose skeleton on the frame
+        mp_drawing.draw_landmarks(frame, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+
+        # Display the frame
+        cv2.imshow('Output', frame)
+
+        if cv2.waitKey(1) == ord('q'):
+            break
+
+    # Close the windows   
+    cap.release()
+    cv2.destroyAllWindows()
